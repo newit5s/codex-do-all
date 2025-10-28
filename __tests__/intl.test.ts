@@ -13,6 +13,6 @@ describe('intl utilities', () => {
 
   it('formats numbers', () => {
     const formatted = formatNumber(1024, 'vi');
-    expect(formatted).toBe('1,024');
+    expect(formatted).toBe('1.024');
   });
 });

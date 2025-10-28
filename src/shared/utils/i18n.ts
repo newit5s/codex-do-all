@@ -57,6 +57,11 @@ const resources = {
           confirmed: 'Confirmed',
           cancelled: 'Cancelled',
           no_show: 'No show'
+        },
+        maskedContact: 'Contact details hidden for staff roles.',
+        errors: {
+          invalidWindow: 'Select a valid start and end time.',
+          conflict: 'Selected tables already have bookings during this window.'
         }
       },
       tables: {
@@ -88,7 +93,8 @@ const resources = {
           blacklist: 'Blacklist'
         },
         visits: 'Lifetime visits',
-        lastVisit: 'Last visit'
+        lastVisit: 'Last visit',
+        maskedContact: 'Contact details hidden for staff access controls.'
       },
       settings: {
         title: 'Automation & communications',
@@ -173,6 +179,11 @@ const resources = {
           confirmed: 'Đã xác nhận',
           cancelled: 'Đã hủy',
           no_show: 'Vắng mặt'
+        },
+        maskedContact: 'Thông tin liên hệ được ẩn đối với nhân viên.',
+        errors: {
+          invalidWindow: 'Vui lòng chọn khung giờ hợp lệ.',
+          conflict: 'Bàn đã được đặt trong khung giờ này.'
         }
       },
       tables: {
@@ -204,7 +215,8 @@ const resources = {
           blacklist: 'Hạn chế'
         },
         visits: 'Lượt ghé',
-        lastVisit: 'Lần ghé gần nhất'
+        lastVisit: 'Lần ghé gần nhất',
+        maskedContact: 'Thông tin liên hệ đã được ẩn theo phân quyền.'
       },
       settings: {
         title: 'Tự động hóa & truyền thông',
@@ -289,6 +301,11 @@ const resources = {
           confirmed: '確定',
           cancelled: 'キャンセル',
           no_show: '未来店'
+        },
+        maskedContact: 'スタッフには連絡先がマスクされています。',
+        errors: {
+          invalidWindow: '有効な開始・終了時刻を選択してください。',
+          conflict: '選択したテーブルはこの時間帯に既存の予約があります。'
         }
       },
       tables: {
@@ -320,7 +337,8 @@ const resources = {
           blacklist: '要注意'
         },
         visits: '来店回数',
-        lastVisit: '最終来店日'
+        lastVisit: '最終来店日',
+        maskedContact: '連絡先はスタッフには表示されません。'
       },
       settings: {
         title: '自動化と通知',

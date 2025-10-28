@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react';
 import { useAppDispatch, useAppState } from '@store/AppStateContext';
 import { CustomerTier } from '@store/types';
 import { useTenant } from '@auth/TenantContext';
+import { useAuth } from '@auth/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { maskContact } from '@shared/utils/privacy';
 
 const tierColors: Record<CustomerTier, string> = {
   vip: 'text-emerald-300',
@@ -13,9 +15,12 @@ const tierColors: Record<CustomerTier, string> = {
 const CustomersPage = () => {
   const { customers } = useAppState();
   const { activeBranch } = useTenant();
+  const { user } = useAuth();
   const dispatch = useAppDispatch();
   const { t, i18n } = useTranslation();
   const [filter, setFilter] = useState<CustomerTier | 'all'>('all');
+
+  const canViewSensitiveContact = user?.role === 'super_admin' || user?.role === 'branch_admin';
 
   const branchCustomers = useMemo(
     () =>
@@ -55,7 +60,12 @@ const CustomersPage = () => {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-lg font-semibold text-slate-100">{customer.name}</p>
-                <p className="text-sm text-slate-400">{customer.contact}</p>
+                <p
+                  className="text-sm text-slate-400"
+                  title={!canViewSensitiveContact ? t('customers.maskedContact') : undefined}
+                >
+                  {canViewSensitiveContact ? customer.contact : maskContact(customer.contact)}
+                </p>
               </div>
               <span className={`text-sm uppercase tracking-wide ${tierColors[customer.tier]}`}>
                 {t(`customers.tiers.${customer.tier}`)}
