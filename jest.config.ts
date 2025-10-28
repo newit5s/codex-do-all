@@ -26,6 +26,7 @@ const config: Config = {
   },
   setupFilesAfterEnv: ['<rootDir>/setupTests.ts'],
   testEnvironment: 'jsdom',
+  testPathIgnorePatterns: ['/node_modules/', '/e2e/'],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: 'tsconfig.json' }]
   }

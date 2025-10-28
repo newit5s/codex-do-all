@@ -1,10 +1,13 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { useAppDispatch, useAppState, bookingStatuses } from '@store/AppStateContext';
 import { useTenant } from '@auth/TenantContext';
+import { useAuth } from '@auth/AuthContext';
 import { Booking, BookingStatus } from '@store/types';
 import { formatDate, formatNumber } from '@shared/utils/intl';
 import { useTranslation } from 'react-i18next';
 import { createId } from '@shared/utils/id';
+import { maskContact } from '@shared/utils/privacy';
+import { findBookingConflicts, normalizeDateTimeLocal } from '@shared/utils/booking';
 
 const statusColors: Record<BookingStatus, string> = {
   pending: 'bg-amber-500/10 text-amber-300',
@@ -16,6 +19,7 @@ const statusColors: Record<BookingStatus, string> = {
 const BookingsPage = () => {
   const { bookings, tables, customers } = useAppState();
   const { activeBranch } = useTenant();
+  const { user } = useAuth();
   const dispatch = useAppDispatch();
   const { t, i18n } = useTranslation();
   const [formState, setFormState] = useState({
@@ -26,6 +30,9 @@ const BookingsPage = () => {
     partySize: 2,
     notes: ''
   });
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const canViewSensitiveContact = user?.role === 'super_admin' || user?.role === 'branch_admin';
 
   const branchBookings = useMemo(
     () => bookings.filter((booking) => booking.branchId === activeBranch.id),
@@ -34,7 +41,57 @@ const BookingsPage = () => {
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setFormError(null);
+
     if (!formState.customerId || !formState.startAt || !formState.endAt) {
+      return;
+    }
+
+    const normalizedStart = normalizeDateTimeLocal(formState.startAt);
+    const normalizedEnd = normalizeDateTimeLocal(formState.endAt);
+
+    if (!normalizedStart || !normalizedEnd) {
+      setFormError(t('bookings.errors.invalidWindow'));
+      console.warn('Booking submission blocked: invalid time window', {
+        startAt: formState.startAt,
+        endAt: formState.endAt
+      });
+      return;
+    }
+
+    const startDate = new Date(normalizedStart);
+    const endDate = new Date(normalizedEnd);
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || startDate >= endDate) {
+      setFormError(t('bookings.errors.invalidWindow'));
+      console.warn('Booking submission blocked: invalid time window', {
+        startAt: formState.startAt,
+        endAt: formState.endAt
+      });
+      return;
+    }
+
+    const conflicts = findBookingConflicts(branchBookings, {
+      startAt: normalizedStart,
+      endAt: normalizedEnd,
+      tableIds: formState.tableIds
+    });
+
+    if (conflicts.length > 0) {
+      setFormError(t('bookings.errors.conflict'));
+      console.warn('Booking submission blocked: conflict detected', {
+        conflicts: conflicts.map((item) => ({
+          id: item.id,
+          startAt: item.startAt,
+          endAt: item.endAt,
+          tables: item.tableIds
+        })),
+        requested: {
+          startAt: normalizedStart,
+          endAt: normalizedEnd,
+          tables: formState.tableIds
+        }
+      });
       return;
     }
 
@@ -43,14 +100,21 @@ const BookingsPage = () => {
       branchId: activeBranch.id,
       tableIds: formState.tableIds,
       customerId: formState.customerId,
-      startAt: formState.startAt,
-      endAt: formState.endAt,
+      startAt: normalizedStart,
+      endAt: normalizedEnd,
       status: 'pending',
       partySize: formState.partySize,
       notes: formState.notes
     };
 
     dispatch({ type: 'BOOKING_CREATE', payload });
+    console.info('Booking created', {
+      bookingId: payload.id,
+      branchId: payload.branchId,
+      tableIds: payload.tableIds,
+      startAt: payload.startAt,
+      endAt: payload.endAt
+    });
     setFormState({ customerId: '', tableIds: [], startAt: '', endAt: '', partySize: 2, notes: '' });
   };
 
@@ -87,7 +151,12 @@ const BookingsPage = () => {
                   <tr key={booking.id} className="hover:bg-slate-800/40">
                     <td className="px-4 py-3">
                       <div className="font-semibold text-slate-100">{customer?.name ?? t('bookings.unknownCustomer')}</div>
-                      <div className="text-xs text-slate-400">{customer?.contact}</div>
+                      <div
+                        className="text-xs text-slate-400"
+                        title={!canViewSensitiveContact ? t('bookings.maskedContact') : undefined}
+                      >
+                        {canViewSensitiveContact ? customer?.contact : maskContact(customer?.contact ?? '')}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-slate-200">{booking.tableIds.join(', ') || t('bookings.unassigned')}</td>
                     <td className="px-4 py-3 text-slate-200">
@@ -138,6 +207,11 @@ const BookingsPage = () => {
         <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 shadow-lg">
           <h3 className="text-lg font-semibold text-brand-100">{t('bookings.createTitle')}</h3>
           <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
+            {formError ? (
+              <p className="rounded border border-rose-500/60 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+                {formError}
+              </p>
+            ) : null}
             <label className="block text-sm">
               <span className="mb-1 block text-slate-300">{t('bookings.customer')}</span>
               <select
